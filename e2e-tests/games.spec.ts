@@ -134,3 +134,34 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 });
+
+test.describe('Game sorting', () => {
+  const titles = async (page: import('@playwright/test').Page) =>
+    page.getByTestId('game-card').evaluateAll((els) => els.map((e) => e.getAttribute('data-game-title') ?? ''));
+
+  test('sorts by title A–Z and Z–A', async ({ page }) => {
+    await page.goto('/');
+    const select = page.getByTestId('sort-select');
+    await expect(select).toBeVisible();
+    await expect(page.getByLabel('Sort by')).toBeVisible();
+
+    await select.selectOption('title-asc');
+    const asc = await titles(page);
+    expect(asc).toEqual([...asc].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })));
+
+    await select.selectOption('title-desc');
+    expect(await titles(page)).toEqual([...asc].reverse());
+  });
+
+  test('sorts by rating highest first with unrated games last', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('sort-select').selectOption('rating-desc');
+    const ratings = await page
+      .getByTestId('game-card')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-game-rating')));
+    const nums = ratings.map((r) => (r ? Number(r) : null));
+    const rated = nums.filter((n): n is number => n !== null);
+    expect(rated).toEqual([...rated].sort((a, b) => b - a));
+    expect(nums.slice(0, rated.length).every((n) => n !== null)).toBe(true);
+  });
+});
