@@ -42,6 +42,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.14.0",
     "eslint-plugin-astro": "^3.2.1",
+    "eslint-plugin-jsdoc": "^63.3.3",
     "globals": "^17.14.0",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.1",

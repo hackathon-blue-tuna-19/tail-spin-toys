@@ -8,17 +8,19 @@
 
 /**
  * Clamps a rating into the displayable 0–5 range.
+ *
+ * @param rating Raw rating value.
+ * @returns The rating limited to 0–5.
  */
 export function clampRating(rating: number): number {
     return Math.min(5, Math.max(0, rating));
 }
 
 /**
- * Builds a star glyph string for a rating between 0 and 5.
+ * Builds a star glyph string with full (★), optional half (½) and empty (☆) stars; ratings are clamped so output always has five star positions.
  *
- * Renders full (★), an optional half (½) and empty (☆) stars. Returns
- * `'Not yet rated'` when the rating is `null`. Ratings are clamped to the
- * 0–5 range so the output always contains exactly five star positions.
+ * @param rating Rating between 0 and 5, or null when unrated.
+ * @returns The star glyphs, or 'Not yet rated' when the rating is null.
  */
 export function formatStarRating(rating: number | null): string {
     if (rating === null) return 'Not yet rated';

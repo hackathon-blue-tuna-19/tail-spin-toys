@@ -69,18 +69,19 @@ function mapCatalogGame(game: Game): CatalogGame {
  * export is byte-identical across environments regardless of the runtime's
  * default locale/ICU data. This is a deterministic order, not a linguistic
  * alphabetical one (e.g. uppercase sorts before lowercase).
+ *
+ * @param values Strings that may contain duplicates.
+ * @returns Unique values in ordinal order.
  */
 function distinctSorted(values: string[]): string[] {
     return [...new Set(values)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 /**
- * Turn data-access results into the agent grounding document. Pure: the same
- * input always produces the same output, regardless of input ordering.
+ * Turn data-access results into the agent grounding document. Pure: output is independent of input ordering. Games sort by ordinal (UTF-16) title with `id` as tiebreaker so the export is byte-identical across environments.
  *
- * Games are sorted by title using ordinal (UTF-16 code unit) comparison, with
- * `id` as a tiebreaker for duplicate titles — not locale-aware alphabetical
- * order — so the export is byte-identical across environments.
+ * @param games Games from the data layer.
+ * @returns The catalog export document.
  */
 export function toCatalogExport(games: Game[]): CatalogExport {
     const entries = games
@@ -97,12 +98,23 @@ export function toCatalogExport(games: Game[]): CatalogExport {
     };
 }
 
-/** Serialize the export with stable formatting and a trailing newline. */
+/**
+ * Serialize the export with stable formatting and a trailing newline.
+ *
+ * @param exported Catalog export to serialize.
+ * @returns Pretty-printed JSON text.
+ */
 export function serializeCatalogExport(exported: CatalogExport): string {
     return `${JSON.stringify(exported, null, 2)}\n`;
 }
 
-/** Read the seeded database and write the grounding file to disk. */
+/**
+ * Read the seeded database and write the grounding file to disk.
+ *
+ * @param db Injectable database client.
+ * @param outputPath Destination file; defaults to `db/catalog.json`.
+ * @returns The export that was written.
+ */
 export async function writeCatalogExport(db: Database, outputPath: string = CATALOG_EXPORT_PATH): Promise<CatalogExport> {
     const exported = toCatalogExport(await getAllGames(db));
     mkdirSync(dirname(outputPath), { recursive: true });
