@@ -14,7 +14,7 @@ const gameSelection = {
     publisherName: publishers.name,
 };
 
-type GameSelectionRow = {
+interface GameSelectionRow {
     id: number;
     title: string;
     description: string;
@@ -23,7 +23,7 @@ type GameSelectionRow = {
     categoryName: string | null;
     publisherId: number | null;
     publisherName: string | null;
-};
+}
 
 function mapGame(row: GameSelectionRow): Game {
     return {
@@ -50,19 +50,35 @@ function baseGamesQuery(db: Database) {
         .leftJoin(publishers, eq(games.publisherId, publishers.id));
 }
 
-/** All games ordered by title. */
+/**
+ * Fetch all games ordered by title.
+ *
+ * @param db Injectable database client.
+ * @returns All games with category and publisher resolved.
+ */
 export async function getAllGames(db: Database): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
     return rows.map(mapGame);
 }
 
-/** All game ids ordered by title. */
+/**
+ * Fetch all game ids ordered by title.
+ *
+ * @param db Injectable database client.
+ * @returns Game ids in title order.
+ */
 export async function getAllGameIds(db: Database): Promise<number[]> {
     const rows = await db.select({ id: games.id }).from(games).orderBy(asc(games.title));
     return rows.map((row) => row.id);
 }
 
-/** A single game by id, or null when it does not exist. */
+/**
+ * Fetch a single game by id.
+ *
+ * @param db Injectable database client.
+ * @param id Game id to look up.
+ * @returns The game, or null when it does not exist.
+ */
 export async function getGameById(db: Database, id: number): Promise<Game | null> {
     const row = await baseGamesQuery(db).where(eq(games.id, id)).get();
     return row ? mapGame(row) : null;

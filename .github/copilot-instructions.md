@@ -34,6 +34,7 @@ This is a crowdfunding platform for games with a developer theme. The applicatio
 
 ### Code formatting requirements
 
+- Follow `coding-standards.instructions.md`: comment why not what, TSDoc (`@param`/`@returns`) on exported `db/` and `src/lib/` functions, documented `.astro` `Props`
 - Use TypeScript with explicit types for function parameters and return values, especially in the data layer (`db/`, `src/lib/`)
 - Frontend code (TypeScript, Astro) must pass ESLint checks (`npm run lint`)
 
