@@ -6,6 +6,9 @@ import {
     getAllGames,
     getAllGameIds,
     getGameById,
+    getGamesByPublisher,
+    getAllPublisherIds,
+    getPublisherById,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -62,5 +65,29 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+});
+
+describe('publisher helpers', () => {
+    let db: Database;
+
+    beforeEach(async () => {
+        db = await createTestDatabase();
+    });
+
+    it('returns only the given publisher\'s games ordered by title, plus publisher lookups', async () => {
+        const [category] = await db.insert(categories).values({ name: 'Cat' }).returning({ id: categories.id });
+        const [a] = await db.insert(publishers).values({ name: 'A Pub', description: 'About A' }).returning({ id: publishers.id });
+        const [b] = await db.insert(publishers).values({ name: 'B Pub' }).returning({ id: publishers.id });
+        for (const [title, publisherId] of [['Zed', a.id], ['Alpha', a.id], ['Other', b.id]] as const) {
+            await db.insert(games).values({ title, description: 'd', categoryId: category.id, publisherId });
+        }
+
+        const result = await getGamesByPublisher(db, a.id);
+        expect(result.map((g) => g.title)).toEqual(['Alpha', 'Zed']);
+        expect(await getGamesByPublisher(db, 9999)).toEqual([]);
+        expect(await getAllPublisherIds(db)).toEqual([a.id, b.id]);
+        expect(await getPublisherById(db, a.id)).toEqual({ id: a.id, name: 'A Pub', description: 'About A' });
+        expect(await getPublisherById(db, 9999)).toBeNull();
     });
 });

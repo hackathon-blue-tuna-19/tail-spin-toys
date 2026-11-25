@@ -10,17 +10,23 @@ interface Props {
 const { game } = Astro.props;
 ---
 
-<a
-    href={`/game/${game.id}`}
-    class="group block bg-slate-800/60 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-slate-700/50 hover:border-blue-500/50 hover:shadow-blue-500/10 hover:shadow-xl transition-all duration-300 hover:translate-y-[-6px]"
+<article
+    class="group relative bg-slate-800/60 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-slate-700/50 hover:border-blue-500/50 hover:shadow-blue-500/10 hover:shadow-xl transition-all duration-300 hover:translate-y-[-6px] focus-within:ring-2 focus-within:ring-blue-500"
     data-testid="game-card"
     data-game-id={game.id}
     data-game-title={game.title}
 >
-    <div class="p-6 relative">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div class="relative z-10">
-            <h3 class="text-xl font-semibold text-slate-100 mb-2 group-hover:text-blue-400 transition-colors" data-testid="game-title">{game.title}</h3>
+    <div class="p-6">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        <div>
+            <h3 class="text-xl font-semibold mb-2">
+                <a
+                    href={`/game/${game.id}`}
+                    class="text-slate-100 group-hover:text-blue-400 transition-colors after:absolute after:inset-0 focus:outline-none"
+                    data-testid="game-link"
+                    data-game-id={game.id}
+                ><span data-testid="game-title">{game.title}</span></a>
+            </h3>
 
             {(game.category?.name || game.publisher?.name) && (
                 <div class="flex gap-2 mb-3">
@@ -30,9 +36,15 @@ const { game } = Astro.props;
                         </Tag>
                     )}
                     {game.publisher?.name && (
-                        <Tag color="purple" data-testid="game-publisher">
-                            {game.publisher.name}
-                        </Tag>
+                        <a
+                            href={`/publisher/${game.publisher.id}`}
+                            class="relative z-10 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            data-testid="game-publisher-link"
+                        >
+                            <Tag color="purple" class="hover:bg-purple-800/60 transition-colors" data-testid="game-publisher">
+                                {game.publisher.name}
+                            </Tag>
+                        </a>
                     )}
                 </div>
             )}
@@ -45,4 +57,4 @@ const { game } = Astro.props;
             </div>
         </div>
     </div>
-</a>
+</article>

@@ -94,7 +94,7 @@ The application lives at the repository root:
 - `src/lib/`: Node SQLite client (`db.ts`) and data-access helpers (`games.ts`)
 - `src/components/`: reusable `.astro` components
 - `src/layouts/`: Astro layout templates
-- `src/pages/`: Astro page routes (`index.astro` listing, `game/[id].astro`, `404.astro`, `about.astro`)
+- `src/pages/`: Astro page routes (`index.astro` listing, `game/[id].astro`, `publisher/[id].astro`, `404.astro`, `about.astro`)
 - `src/styles/`: CSS and Tailwind configuration
 - `src/types/`: TypeScript interfaces (Game, Publisher, Category)
 - `e2e-tests/`: Playwright E2E tests (home, games, accessibility)
