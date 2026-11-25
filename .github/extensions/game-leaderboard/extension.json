@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "initialization": "module",
+    "canvases": [
+        {
+            "id": "tailspin-game-leaderboard",
+            "displayName": "Game Leaderboard",
+            "description": "Read-only leaderboard ranking Tailspin Toys games by star rating, with genre filtering.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "genre": { "type": "string", "description": "Optional genre (category) name to filter by." }
+                },
+                "additionalProperties": false
+            },
+            "actions": [
+                {
+                    "name": "get_leaderboard",
+                    "description": "Return ranked games, optionally filtered by genre. Ties share a rank; unrated games come last.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "genre": { "type": "string", "description": "Optional genre (category) name." }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                {
+                    "name": "list_genres",
+                    "description": "List the genres available for filtering."
+                }
+            ]
+        }
+    ]
+}
