@@ -1,6 +1,38 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('filters games by multiple categories and publisher, and clears filters', async ({ page }) => {
+    await page.goto('/');
+
+    const visibleCards = page.locator('[data-testid="game-card"]:visible');
+    const strategy = page.getByRole('checkbox', { name: 'Strategy' });
+    const puzzle = page.getByRole('checkbox', { name: 'Puzzle' });
+
+    await strategy.check();
+    await puzzle.check();
+    await expect(visibleCards).toHaveCount(8);
+    await expect(page.getByTestId('filter-results-count')).toHaveText('Showing 8 of 21 games');
+
+    await page.getByRole('combobox', { name: 'Filter by publisher' }).selectOption({ label: 'CodeForge Studios' });
+    await expect(visibleCards).toHaveCount(2);
+    await expect(page.getByTestId('filter-results-count')).toHaveText('Showing 2 of 21 games');
+    await expect(page).toHaveURL(/category=\d+.*category=\d+.*publisher=\d+/);
+
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(visibleCards).toHaveCount(21);
+    await expect(page.getByTestId('filter-results-count')).toHaveText('Showing 21 of 21 games');
+    await expect(page).toHaveURL('/');
+  });
+
+  test('filters games by publisher without selecting a category', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('combobox', { name: 'Filter by publisher' }).selectOption({ label: 'CodeForge Studios' });
+
+    await expect(page.locator('[data-testid="game-card"]:visible')).toHaveCount(6);
+    await expect(page.getByTestId('filter-results-count')).toHaveText('Showing 6 of 21 games');
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
