@@ -1,0 +1,116 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Backer Concierge - Tailspin Toys">
+  <div class="mx-auto max-w-3xl py-8">
+    <header class="mb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-blue-300">Tailspin Toys</p>
+      <h1 class="mb-3 text-3xl font-bold text-slate-100">Backer Concierge</h1>
+      <p class="text-slate-300">Ask about games in our catalog. Recommendations use catalog details only; we don’t track funding, backer counts, player counts, pledge tiers, prices, or release dates.</p>
+    </header>
+
+    <form id="concierge-form" class="rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-lg">
+      <label for="concierge-question" class="mb-2 block font-medium text-slate-100">What kind of game are you looking for?</label>
+      <textarea
+        id="concierge-question"
+        name="question"
+        rows="3"
+        required
+        maxlength="500"
+        aria-describedby="question-help"
+        class="w-full rounded-lg border border-slate-600 bg-slate-900 p-3 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Try: Which strategy game has the highest rating?"
+        data-testid="concierge-question"
+      ></textarea>
+      <p id="question-help" class="mt-2 text-sm text-slate-400">Ask about game titles, descriptions, categories, publishers, or star ratings.</p>
+      <button
+        type="submit"
+        class="mt-4 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:cursor-wait disabled:opacity-70"
+        data-testid="concierge-submit"
+      >Ask the concierge</button>
+    </form>
+
+    <p id="concierge-status" class="mt-6 min-h-6 text-slate-300" role="status" aria-live="polite" data-testid="concierge-status">
+      Your answer will be grounded in the Tailspin Toys catalog.
+    </p>
+    <section id="concierge-answer" class="mt-4" aria-label="Concierge answer" data-testid="concierge-answer"></section>
+  </div>
+</Layout>
+
+<script>
+  import { answerCatalogQuestion } from '../lib/concierge';
+  import type { CatalogExport, CatalogGame } from '../types/catalog';
+
+  const form = document.querySelector<HTMLFormElement>('#concierge-form');
+  const questionInput = document.querySelector<HTMLTextAreaElement>('#concierge-question');
+  const submitButton = document.querySelector<HTMLButtonElement>('[data-testid="concierge-submit"]');
+  const status = document.querySelector<HTMLParagraphElement>('#concierge-status');
+  const answerContainer = document.querySelector<HTMLElement>('#concierge-answer');
+
+  function renderGame(game: CatalogGame): HTMLLIElement {
+    const item = document.createElement('li');
+    item.className = 'rounded-lg border border-slate-700 bg-slate-800 p-4';
+    item.dataset.testid = `concierge-game-${game.id}`;
+
+    const title = document.createElement('a');
+    title.href = `/game/${game.id}`;
+    title.className = 'font-semibold text-blue-300 underline decoration-blue-500/50 underline-offset-4 hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500';
+    title.dataset.testid = `concierge-game-link-${game.id}`;
+    title.textContent = game.title;
+    item.append(title);
+
+    const details = document.createElement('p');
+    details.className = 'mt-2 text-sm text-slate-300';
+    details.textContent = `${game.category} · ${game.publisher} · ${game.ratingLabel}`;
+    item.append(details);
+
+    const description = document.createElement('p');
+    description.className = 'mt-2 text-sm text-slate-400';
+    description.textContent = game.description;
+    item.append(description);
+
+    return item;
+  }
+
+  form?.addEventListener('submit', async (event: SubmitEvent) => {
+    event.preventDefault();
+    if (!form || !questionInput || !submitButton || !status || !answerContainer) return;
+
+    const question = questionInput.value.trim();
+    if (!question) {
+      questionInput.focus();
+      return;
+    }
+
+    submitButton.disabled = true;
+    status.textContent = 'Checking the catalog…';
+    answerContainer.replaceChildren();
+
+    try {
+      const response = await fetch('/catalog.json');
+      if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
+      const catalog = await response.json() as CatalogExport;
+      const answer = answerCatalogQuestion(question, catalog);
+
+      const message = document.createElement('p');
+      message.className = 'mb-4 text-slate-200';
+      message.textContent = answer.message;
+      answerContainer.append(message);
+
+      if (answer.games.length > 0) {
+        const results = document.createElement('ul');
+        results.className = 'grid gap-3';
+        answer.games.forEach((game) => results.append(renderGame(game)));
+        answerContainer.append(results);
+      }
+
+      status.textContent = 'Catalog answer ready.';
+    } catch (error) {
+      console.error('Backer Concierge could not load its catalog:', error);
+      status.textContent = 'The catalog is unavailable right now. Please try again later.';
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+</script>

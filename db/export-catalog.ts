@@ -16,36 +16,17 @@ import { createDatabase, type Database } from '../src/lib/db';
 import { getAllGames } from '../src/lib/games';
 import { formatStarRating } from '../src/lib/ratings';
 import type { Game } from '../src/types/game';
+import type { CatalogExport, CatalogGame } from '../src/types/catalog';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 /** Default location of the generated grounding file. */
-export const CATALOG_EXPORT_PATH = join(here, 'catalog.json');
+export const CATALOG_EXPORT_PATH = join(here, '../public/catalog.json');
+
+export type { CatalogExport, CatalogGame } from '../src/types/catalog';
 
 const UNKNOWN_CATEGORY = 'Uncategorized';
 const UNKNOWN_PUBLISHER = 'Unknown publisher';
-
-/** A single catalog entry as the agent sees it. */
-export interface CatalogGame {
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    publisher: string;
-    /** Omitted entirely when the game has no rating, so the export contains no nulls. */
-    starRating?: number;
-    ratingLabel: string;
-}
-
-/** The full grounding document uploaded to the agent. */
-export interface CatalogExport {
-    source: string;
-    note: string;
-    gameCount: number;
-    categories: string[];
-    publishers: string[];
-    games: CatalogGame[];
-}
 
 const GROUNDING_NOTE =
     'This file is the complete Tailspin Toys catalog. It contains every game the platform lists. ' +

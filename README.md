@@ -50,9 +50,13 @@ The SQLite database is built from `db/games.csv` — there is no live data to mi
 npm run db:generate   # generate a migration after editing db/schema.ts
 npm run db:migrate    # apply migrations
 npm run db:seed       # seed from games.csv (idempotent)
-npm run db:setup      # migrate + seed (run automatically by predev/prebuild)
-npm run db:export     # write the seeded catalog to db/catalog.json
+npm run db:setup      # migrate + seed
+npm run db:export     # write the seeded catalog to public/catalog.json for the Backer Concierge
 ```
+
+The development server and static build generate the public catalog export before Astro runs. It contains only catalog fields (title, description, category, publisher, and star rating); it does not include funding totals, backer counts, player counts, pledge tiers, prices, or release dates.
+
+The `/concierge` page uses that export to make deterministic catalog recommendations, answer category and rating questions, and ask for clarification when it cannot find a grounded match. It does not send questions to a third-party service.
 
 > [!NOTE]
 > Seeding is idempotent — it skips games that already exist (matched by title) rather than reconciling changed rows. CI always starts from a clean database, so it reflects `games.csv` exactly. Locally, if you edit or remove rows in `games.csv`, delete `tailspin.db` and re-run `npm run db:setup` to fully regenerate.
