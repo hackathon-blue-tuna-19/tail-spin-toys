@@ -10,6 +10,8 @@ Tailspin Toys is a crowdfunding platform for games with a developer theme. The p
 - **Vitest** — unit tests for the data layer and pure transforms.
 - **Playwright** — end-to-end tests run against the built static site.
 
+The `/leaderboard` page ranks catalog games by star rating, allows filtering by genre, and gives games with tied ratings the same rank. Unrated games are listed last; ratings represent catalog ratings, not gameplay scores or backing activity.
+
 Development commands are defined in `package.json`: npm runs Astro for the dev server, static build, and preview. The `predev` and `prebuild` npm hooks run the TypeScript database migration and seed tasks in `db/`, writing to the gitignored `tailspin.db` file.
 
 ## Using this template
