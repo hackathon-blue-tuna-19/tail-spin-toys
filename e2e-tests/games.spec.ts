@@ -24,6 +24,36 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should navigate between static pages of games', async ({ page }) => {
+    await page.goto('/');
+
+    const firstPageCards = page.getByTestId('game-card');
+    await expect(firstPageCards).toHaveCount(6);
+    const firstPageFirstTitle = await firstPageCards.first().getAttribute('data-game-title');
+    await expect(page.getByTestId('pagination-current-1')).toHaveAttribute('aria-current', 'page');
+
+    await test.step('Navigate forward and verify different games are shown', async () => {
+      await page.getByTestId('pagination-next').click();
+      await expect(page).toHaveURL('/page/2');
+      await expect(page.getByTestId('game-card')).toHaveCount(6);
+      await expect(page.getByTestId('pagination-current-2')).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByTestId('game-card').first()).not.toHaveAttribute('data-game-title', firstPageFirstTitle ?? '');
+    });
+
+    await test.step('Navigate to the final page and verify the final partial page', async () => {
+      await page.getByTestId('pagination-page-4').click();
+      await expect(page).toHaveURL('/page/4');
+      await expect(page.getByTestId('game-card')).toHaveCount(3);
+      await expect(page.getByTestId('pagination-next')).toHaveCount(0);
+    });
+
+    await test.step('Navigate back to the first page', async () => {
+      await page.getByTestId('pagination-previous').click();
+      await expect(page).toHaveURL('/page/3');
+      await expect(page.getByTestId('pagination-current-3')).toHaveAttribute('aria-current', 'page');
+    });
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;

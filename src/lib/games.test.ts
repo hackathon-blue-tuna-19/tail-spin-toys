@@ -6,6 +6,7 @@ import {
     getAllGames,
     getAllGameIds,
     getGameById,
+    getGamesPage,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -50,6 +51,46 @@ describe('games data-access helpers', () => {
         const ids = await getAllGameIds(db);
         const all = await getAllGames(db);
         expect(ids).toEqual(all.map((g) => g.id));
+    });
+
+    it('returns the requested page with stable ordering and pagination metadata', async () => {
+        await seedGames(db, 5);
+
+        const page = await getGamesPage(db, 2, 2);
+
+        expect(page.games.map((game) => game.title)).toEqual(['Game 03', 'Game 04']);
+        expect(page).toMatchObject({
+            page: 2,
+            pageSize: 2,
+            totalCount: 5,
+            totalPages: 3,
+        });
+    });
+
+    it('returns an empty page when the requested page is past the end', async () => {
+        await seedGames(db, 2);
+
+        const page = await getGamesPage(db, 3, 2);
+
+        expect(page.games).toEqual([]);
+        expect(page.totalPages).toBe(1);
+    });
+
+    it('returns zero pages for an empty catalog', async () => {
+        const page = await getGamesPage(db, 1, 2);
+
+        expect(page.games).toEqual([]);
+        expect(page.totalCount).toBe(0);
+        expect(page.totalPages).toBe(0);
+    });
+
+    it.each([
+        [0, 2],
+        [1.5, 2],
+        [1, 0],
+        [1, 1.5],
+    ])('rejects invalid page arguments (%s, %s)', async (page, pageSize) => {
+        await expect(getGamesPage(db, page, pageSize)).rejects.toThrow(RangeError);
     });
 
     it('fetches a single game by id', async () => {

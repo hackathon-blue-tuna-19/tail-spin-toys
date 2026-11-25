@@ -1,7 +1,9 @@
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, count } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
+
+export const GAMES_PER_PAGE = 6;
 
 const gameSelection = {
     id: games.id,
@@ -24,6 +26,14 @@ type GameSelectionRow = {
     publisherId: number | null;
     publisherName: string | null;
 };
+
+export interface GamesPage {
+    games: Game[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+}
 
 function mapGame(row: GameSelectionRow): Game {
     return {
@@ -52,13 +62,49 @@ function baseGamesQuery(db: Database) {
 
 /** All games ordered by title. */
 export async function getAllGames(db: Database): Promise<Game[]> {
-    const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+    const rows = await baseGamesQuery(db).orderBy(asc(games.title), asc(games.id));
     return rows.map(mapGame);
+}
+
+/** A page of games ordered by title, including the total number of pages. */
+export async function getGamesPage(
+    db: Database,
+    page: number,
+    pageSize: number,
+): Promise<GamesPage> {
+    if (!Number.isInteger(page) || page < 1) {
+        throw new RangeError('page must be a positive integer');
+    }
+    if (!Number.isInteger(pageSize) || pageSize < 1) {
+        throw new RangeError('pageSize must be a positive integer');
+    }
+
+    const [totalRow, rows] = await Promise.all([
+        db.select({ count: count() }).from(games).get(),
+        baseGamesQuery(db)
+            .orderBy(asc(games.title), asc(games.id))
+            .limit(pageSize)
+            .offset((page - 1) * pageSize),
+    ]);
+    if (!totalRow) {
+        throw new Error('Failed to count games for pagination');
+    }
+
+    return {
+        games: rows.map(mapGame),
+        page,
+        pageSize,
+        totalCount: totalRow.count,
+        totalPages: Math.ceil(totalRow.count / pageSize),
+    };
 }
 
 /** All game ids ordered by title. */
 export async function getAllGameIds(db: Database): Promise<number[]> {
-    const rows = await db.select({ id: games.id }).from(games).orderBy(asc(games.title));
+    const rows = await db
+        .select({ id: games.id })
+        .from(games)
+        .orderBy(asc(games.title), asc(games.id));
     return rows.map((row) => row.id);
 }
 

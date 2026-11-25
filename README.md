@@ -9,6 +9,7 @@ Tailspin Toys is a crowdfunding platform for games with a developer theme. The p
 - **Tailwind CSS v4** — styling via utility classes (dark theme).
 - **Vitest** — unit tests for the data layer and pure transforms.
 - **Playwright** — end-to-end tests run against the built static site.
+- **Paginated game catalog** — the home page lists six games at a time, with additional pages statically generated at `/page/{number}`.
 
 Development commands are defined in `package.json`: npm runs Astro for the dev server, static build, and preview. The `predev` and `prebuild` npm hooks run the TypeScript database migration and seed tasks in `db/`, writing to the gitignored `tailspin.db` file.
 
