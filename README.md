@@ -27,6 +27,10 @@ npm ci
 npx playwright install chromium   # only needed to run the E2E tests
 ```
 
+## Filtering games
+
+The home page lets users filter games by one or more categories (OR) and by publisher; filters combine with AND. Filtering runs client-side over the prerendered cards. The data layer exposes `getFilteredGames`, `getAllCategories` and `getAllPublishers` in `src/lib/games.ts`.
+
 ## Launch the site
 
 ```bash

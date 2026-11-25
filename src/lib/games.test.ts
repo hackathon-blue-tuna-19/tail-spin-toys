@@ -6,6 +6,9 @@ import {
     getAllGames,
     getAllGameIds,
     getGameById,
+    getFilteredGames,
+    getAllCategories,
+    getAllPublishers,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -62,5 +65,63 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+});
+
+describe('game filtering helpers', () => {
+    let db: Database;
+    let ids: { catA: number; catB: number; catC: number; pub1: number; pub2: number };
+
+    beforeEach(async () => {
+        db = await createTestDatabase();
+        const cats = await db
+            .insert(categories)
+            .values([
+                { name: 'Beta', description: 'c' },
+                { name: 'Alpha', description: 'c' },
+                { name: 'Gamma', description: 'c' },
+            ])
+            .returning({ id: categories.id });
+        const pubs = await db
+            .insert(publishers)
+            .values([
+                { name: 'Zed', description: 'p' },
+                { name: 'Acme', description: 'p' },
+            ])
+            .returning({ id: publishers.id });
+        ids = { catA: cats[0].id, catB: cats[1].id, catC: cats[2].id, pub1: pubs[0].id, pub2: pubs[1].id };
+        await db.insert(games).values([
+            { title: 'G1', description: 'd', categoryId: ids.catA, publisherId: ids.pub1 },
+            { title: 'G2', description: 'd', categoryId: ids.catB, publisherId: ids.pub1 },
+            { title: 'G3', description: 'd', categoryId: ids.catA, publisherId: ids.pub2 },
+            { title: 'G4', description: 'd', categoryId: ids.catC, publisherId: ids.pub2 },
+        ]);
+    });
+
+    const titles = async (f: Parameters<typeof getFilteredGames>[1]): Promise<string[]> =>
+        (await getFilteredGames(db, f)).map((g) => g.title);
+
+    it('returns all games without filters', async () => {
+        expect(await titles({})).toEqual(['G1', 'G2', 'G3', 'G4']);
+        expect(await titles({ categoryIds: [] })).toEqual(['G1', 'G2', 'G3', 'G4']);
+    });
+
+    it('filters by one or more categories', async () => {
+        expect(await titles({ categoryIds: [ids.catA] })).toEqual(['G1', 'G3']);
+        expect(await titles({ categoryIds: [ids.catA, ids.catB] })).toEqual(['G1', 'G2', 'G3']);
+    });
+
+    it('filters by publisher', async () => {
+        expect(await titles({ publisherId: ids.pub2 })).toEqual(['G3', 'G4']);
+    });
+
+    it('combines category and publisher filters', async () => {
+        expect(await titles({ categoryIds: [ids.catA], publisherId: ids.pub2 })).toEqual(['G3']);
+        expect(await titles({ categoryIds: [ids.catB], publisherId: ids.pub2 })).toEqual([]);
+    });
+
+    it('lists categories and publishers ordered by name', async () => {
+        expect((await getAllCategories(db)).map((c) => c.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
+        expect((await getAllPublishers(db)).map((p) => p.name)).toEqual(['Acme', 'Zed']);
     });
 });
