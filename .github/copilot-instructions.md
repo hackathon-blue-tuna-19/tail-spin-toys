@@ -1,102 +1,20 @@
-# Tailspin Toys Crowd Funding Development Guidelines
+# Tailspin Toys agent guide
 
-This is a crowdfunding platform for games with a developer theme. The application is a single **Astro 7** site (fully prerendered/static output) styled with **Tailwind CSS v4**. Data is stored in a local SQLite database accessed at build time through **Drizzle ORM + Node.js's built-in SQLite driver**; pages query the database directly in frontmatter — there is no separate backend API or client-side UI framework. Please follow these guidelines when contributing:
-
-## Agent notes
-
-- Explore the project before beginning code generation
-- Create todo lists for long operations
-  - Before each step in a todo list, reread the instructions to ensure you always have the right directions
-- Always use instructions files when available, reviewing before generating code
-- Do not generate summary markdown files upon completion of a task
-- Always use absolute paths when running scripts and BASH commands
-- **NEVER commit or push to main automatically unless explicitly instructed to do so**
-
-## Code standards
-
-### Required Before Each Commit
-
-#### Testing guidelines
-
-- **Always run unit tests, lint, and type checks through the `quality-checks` skill.** The skill wraps `npm run test:unit`, `npm run lint`, and `npm run typecheck:all` with environment setup, ordering, and troubleshooting. Run the Playwright E2E suite directly with `npm run test:e2e`. (Starting the app for manual validation is not a quality check — run `npm run dev` directly for that.)
-- Run Vitest unit tests to verify the data layer and transforms, and Playwright tests to verify e2e and frontend functionality
-- Run ESLint to check frontend code quality before committing
-- Review the existing tests to ensure we're not duplicating efforts
-- Test code should be of the same quality as the rest of the project, and follow DRY principles
-- For frontend changes, verify the build (`npm run build`) and run the end-to-end tests (`npm run test:e2e`) directly, to ensure everything works correctly
-- When changing the data layer (schema, helpers, transforms), update and run the corresponding unit tests
-
-#### Project guidelines
-
-- When updating the database schema, generate and commit the drizzle-kit migration (`npm run db:generate`)
-- When adding new functionality, make sure you update the README
-- Make sure all guidance in the Copilot Instructions file is updated with any relevant changes, including to project structure and scripts, and programming guidance
-
-### Code formatting requirements
-
-- Use TypeScript with explicit types for function parameters and return values, especially in the data layer (`db/`, `src/lib/`)
-- Frontend code (TypeScript, Astro) must pass ESLint checks (`npm run lint`)
-
-### Data Layer Patterns (Drizzle + Node SQLite)
-
-- Define tables in `db/schema.ts`; manage schema changes with drizzle-kit migrations - see `drizzle.instructions.md`
-- Keep data-access helpers in `src/lib/` with an **injectable `db`** argument so they're testable
-- Keep CSV/seed logic as pure functions in `db/transforms.ts`
-- Seed-derived values must be deterministic (no `Math.random`) so static builds are reproducible
-
-### Astro Patterns
-
-- **Astro Pages/Components**: routing, layouts, content, and components are all `.astro` - see `astro.instructions.md`
-- Query data directly in page frontmatter via the `src/lib/` helpers (build-time, static output)
-- Dynamic routes use `getStaticPaths()` + `export const prerender = true`
-- Provide a branded `404.astro` (unknown routes are real 404s under static output)
-- Only add a scoped Astro `<script>` when genuine client interactivity is required
-
-### Styling
-
-- Use Tailwind CSS utility classes exclusively - see `style.instructions.md`
-- Dark theme colors: slate palette (`bg-slate-800`, `text-slate-100`, etc.)
-- Rounded corners and modern UI patterns
-- Follow modern UI/UX principles with clean, accessible interfaces
-
-### GitHub Actions workflows
-
-- Follow good security practices
-- Make sure to explicitly set the workflow permissions
-- Add comments to document what tasks are being performed
-- Keep the Playwright CI container image derived from the locked `@playwright/test` version so dependency updates use matching browsers.
-
-## npm Commands
-
-- Development commands are defined in `package.json`. They run Astro for the site and TypeScript tasks in `db/` for database setup.
-- **Skills take precedence.** Before running a command directly, check whether a skill covers the task (e.g. the `quality-checks` skill wraps unit tests, lint, and type checks). If one applies, follow it.
-- Key npm scripts:
-  - `npm run dev` — start the Astro dev server (`predev` migrates + seeds the local SQLite database)
-  - `npm run build` — build the static site (`prebuild` migrates + seeds the local SQLite database)
-  - `npm run preview` — serve the built `dist/` output
-  - `npm run lint` — ESLint
-  - `npm run test:unit` — Vitest unit tests
-  - `npm run test:e2e` — Playwright E2E tests (builds + previews first)
-  - `npm run typecheck` — type-check the pure TypeScript with `tsgo` (TypeScript 7 native compiler, via `@typescript/native-preview`) using `tsconfig.tsgo.json`
-  - `npm run typecheck:astro` — type-check `.astro` files with `astro check` (classic TypeScript package)
-  - `npm run typecheck:all` — run both type-check scripts (used by the CI `type-check` job)
-  - `npm run db:generate` / `db:migrate` / `db:seed` / `db:setup` — Drizzle schema/migration/seed tasks
-  - `npm run db:export` — migrate and seed via `predb:export`, then write the catalog grounding file to `db/catalog.json`
-
-> [!NOTE]
-> TypeScript 7 (`tsgo`) is adopted **side-by-side** for type checking only; it does not affect linting. ESLint + `typescript-eslint` and `astro check` still resolve the classic `typescript` package (kept at v6) because the native compiler's API isn't ready for them yet. Do **not** bump the classic `typescript` package to 7 (a Dependabot `ignore` holds it) until `typescript-eslint` + `@astrojs/check` support the native API. `tsgo` is `--noEmit` only; the site is still built by `astro build`.
-
-## Repository Structure
-
-The application lives at the repository root:
-
-- `db/`: Drizzle schema, migrations, transforms, seed, and `games.csv`
-- `src/lib/`: Node SQLite client (`db.ts`) and data-access helpers (`games.ts`)
-- `src/components/`: reusable `.astro` components
-- `src/layouts/`: Astro layout templates
-- `src/pages/`: Astro page routes (`index.astro` listing, `game/[id].astro`, `404.astro`, `about.astro`)
-- `src/styles/`: CSS and Tailwind configuration
-- `src/types/`: TypeScript interfaces (Game, Publisher, Category)
-- `e2e-tests/`: Playwright E2E tests (home, games, accessibility)
-- `drizzle.config.ts`, `vitest.config.ts`, `astro.config.mjs`, `playwright.config.ts`: tooling config
-- `README.md`: Project documentation
+- This is a fully prerendered Astro 7 + Tailwind CSS v4 app (`astro.config.mjs`: `output: 'static'`), not an SPA or API server. Keep pages/components in `.astro`; use a scoped `<script>` only for genuine DOM interaction.
+- Data is build-time local SQLite. `db/schema.ts` owns tables, `db/games.csv` is the seed source, `db/transforms.ts` provides pure CSV/rating helpers, and `db/seed.ts` is idempotent (games are matched by title). Do not add `Math.random()` or other nondeterministic seed output.
+- Use `src/lib/db.ts` for the Node `node:sqlite`/Drizzle client. `DATABASE_URL` accepts `file:...` or `:memory:`; the default is `file:tailspin.db`. Data helpers in `src/lib/games.ts` accept an injectable `Database` and map Drizzle rows to `src/types/game.ts` app types.
+- Pages query through frontmatter: `getDatabase()` + functions such as `getAllGames()` / `getGameById()`. Keep ordering and joins in `src/lib/games.ts`, not in `.astro` files.
+- Dynamic routes must export `prerender = true` and `getStaticPaths()`. Follow `src/pages/game/[id].astro`, where IDs come from `getAllGameIds(getDatabase())`; retain the branded `src/pages/404.astro`.
+- Layout and reusable UI live in `src/layouts/` and `src/components/`; `src/layouts/Layout.astro` imports global styles and common navigation. Prefer semantic HTML, the slate dark palette, Tailwind utilities, visible focus rings, and no custom CSS unless utility classes cannot express it.
+- Every interactive element needs a stable `data-testid`, with descriptive names such as `game-card`, `game-details-title`, or `back-game-button`. The Playwright suite uses these IDs and role/text locators; add test IDs for newly interactive elements.
+- Use the existing instruction files when working in scoped areas: `astro.instructions.md`, `drizzle.instructions.md`, `style.instructions.md`, `ui.instructions.md`, `unit-tests.instructions.md`, and `playwright.instructions.md` under `.github/instructions/`.
+- Node 22.13+ is required. Run `npm ci` before the first check. `npm run dev` and `npm run build` run `predev`/`prebuild`, which migrate and seed `tailspin.db`.
+- Database changes: edit `db/schema.ts`, run `npm run db:generate`, then `npm run db:setup`; commit generated files under `db/migrations/` with the schema change. Do not hand-edit generated SQL/migration metadata.
+- If local seed data is stale, remove `tailspin.db` and run `npm run db:setup`. The database is intentionally gitignored and locally mutable; CI starts clean.
+- Co-locate unit tests as `*.test.ts`. Test pure transforms directly and test data helpers against `createTestDatabase()` in `db/test-helpers.ts`; do not mock SQL or start Astro for unit tests.
+- Playwright specs belong in `e2e-tests/*.spec.ts`. Run `npm run test:e2e`; its config builds and previews the static site on port 4321, so it does not require a separate server. Prefer role-based locators and web-first assertions; never add fixed waits.
+- The project has two type-check paths: `npm run typecheck` checks pure TypeScript with `tsgo`, while `npm run typecheck:astro` runs `astro sync && astro check`. Use `npm run typecheck:all` for both.
+- Frontend/data quality checks: use the `quality-checks` skill or run `npm run test:unit`, `npm run lint`, and `npm run typecheck:all` as applicable. Run `npm run build` and `npm run test:e2e` for frontend changes.
+- CI is defined in `.github/workflows/run-tests.yml`: lint, native/classic type checks, Vitest, and Playwright run separately. Playwright uses the browser image matching `@playwright/test` in `package-lock.json`.
+- Keep README.md and this Copilot guide updated when adding scripts, project structure, or contributor-facing conventions. Update `db/` unit tests for schema/helper/transform changes.
+- Do not commit or push to `main` unless the user explicitly instructs it. Work should normally be on a named feature branch and follow `.github/skills/make-contribution/SKILL.md` for contribution/PR steps.

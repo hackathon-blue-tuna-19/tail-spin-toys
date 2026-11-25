@@ -19,7 +19,39 @@ const games = await getAllGames(getDatabase());
     />
 
     <div>
-      <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+      <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <h2 class="text-2xl font-medium text-slate-100">Featured Games</h2>
+
+        {games.length > 0 && (
+          <form role="search" class="flex w-full gap-2 sm:w-auto" data-testid="game-search-form">
+            <label for="game-search" class="sr-only">Search games</label>
+            <input
+              id="game-search"
+              type="search"
+              placeholder="Search games"
+              autocomplete="off"
+              class="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-72"
+              data-testid="game-search-input"
+            />
+            <button
+              type="button"
+              class="rounded-lg border border-slate-600 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="game-search-clear"
+            >
+              Clear
+            </button>
+          </form>
+        )}
+      </div>
+
+      <p
+        class="mb-4 text-sm text-slate-400"
+        role="status"
+        aria-live="polite"
+        data-testid="game-search-status"
+      >
+        {games.length > 0 ? `${games.length} games available` : ''}
+      </p>
 
       {games.length === 0 ? (
         <EmptyState text="No games available at the moment." />
@@ -28,6 +60,50 @@ const games = await getAllGames(getDatabase());
           {games.map((game) => <GameCard game={game} />)}
         </div>
       )}
+
+      {games.length > 0 && (
+        <div class="hidden" data-testid="game-search-empty">
+          <EmptyState text="No games match your search." />
+        </div>
+      )}
     </div>
   </div>
 </Layout>
+
+<script>
+  const searchForm = document.querySelector<HTMLFormElement>('[data-testid="game-search-form"]');
+  const searchInput = document.querySelector<HTMLInputElement>('[data-testid="game-search-input"]');
+  const clearButton = document.querySelector<HTMLButtonElement>('[data-testid="game-search-clear"]');
+  const gamesGrid = document.querySelector<HTMLElement>('[data-testid="games-grid"]');
+  const emptyState = document.querySelector<HTMLElement>('[data-testid="game-search-empty"]');
+  const searchStatus = document.querySelector<HTMLElement>('[data-testid="game-search-status"]');
+
+  if (searchForm && searchInput && clearButton && gamesGrid && emptyState && searchStatus) {
+    const cards = Array.from(gamesGrid.querySelectorAll<HTMLElement>('[data-testid="game-card"]'));
+
+    const applySearch = (): void => {
+      const query = searchInput.value.trim().toLocaleLowerCase();
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const matches = query === '' || (card.dataset.search ?? '').includes(query);
+        card.hidden = !matches;
+        if (matches) visibleCount += 1;
+      });
+
+      gamesGrid.classList.toggle('hidden', visibleCount === 0);
+      emptyState.classList.toggle('hidden', visibleCount !== 0);
+      searchStatus.textContent = query === ''
+        ? `${visibleCount} games available`
+        : `${visibleCount} ${visibleCount === 1 ? 'game' : 'games'} found`;
+    };
+
+    searchForm.addEventListener('submit', (event) => event.preventDefault());
+    searchInput.addEventListener('input', applySearch);
+    clearButton.addEventListener('click', () => {
+      searchInput.value = '';
+      applySearch();
+      searchInput.focus();
+    });
+  }
+</script>
