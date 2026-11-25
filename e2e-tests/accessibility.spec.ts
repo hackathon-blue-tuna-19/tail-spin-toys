@@ -88,7 +88,7 @@ test.describe('Accessibility Tests', () => {
           await page.keyboard.press('Tab');
           tabCount++;
         }
-        return page.locator('[data-testid="game-card"]:focus').count();
+        return page.locator('[data-testid="game-card"] [data-testid="game-link"]:focus').count();
       }, { timeout: 15000, message: 'Expected a game card to receive focus via Tab' }).toBeGreaterThan(0);
     });
   });
@@ -110,7 +110,7 @@ test.describe('Accessibility Tests', () => {
         const focusedElement = page.locator(':focus');
         const testId = await focusedElement.getAttribute('data-testid').catch(() => null);
 
-        if (testId === 'game-card') {
+        if (testId === 'game-link') {
           gameId = await focusedElement.getAttribute('data-game-id');
           gameCardFocused = true;
         }
