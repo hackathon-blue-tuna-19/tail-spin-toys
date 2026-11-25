@@ -24,10 +24,54 @@ const games = await getAllGames(getDatabase());
       {games.length === 0 ? (
         <EmptyState text="No games available at the moment." />
       ) : (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
-          {games.map((game) => <GameCard game={game} />)}
-        </div>
+        <>
+          <form role="search" class="mb-6" onsubmit="return false" data-testid="game-search-form">
+            <label for="game-search" class="block text-sm font-medium text-slate-300 mb-2">Search games by title</label>
+            <input
+              id="game-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Search games..."
+              data-testid="game-search-input"
+              class="w-full sm:max-w-md px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </form>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
+            {games.map((game) => <GameCard game={game} />)}
+          </div>
+
+          <div id="no-search-results" hidden>
+            <EmptyState text="No games match your search." />
+          </div>
+          <p id="search-status" class="sr-only" role="status" aria-live="polite"></p>
+        </>
       )}
     </div>
   </div>
 </Layout>
+
+<script>
+  import { matchesTitle } from '../lib/search';
+
+  const input = document.querySelector<HTMLInputElement>('#game-search');
+  const grid = document.querySelector<HTMLElement>('[data-testid="games-grid"]');
+  const empty = document.querySelector<HTMLElement>('#no-search-results');
+  const status = document.querySelector<HTMLElement>('#search-status');
+
+  function applyFilter(): void {
+    if (!input || !grid || !empty) return;
+    const cards = grid.querySelectorAll<HTMLElement>('[data-testid="game-card"]');
+    let visible = 0;
+    cards.forEach((card) => {
+      const match = matchesTitle(card.dataset.gameTitle ?? '', input.value);
+      card.hidden = !match;
+      if (match) visible++;
+    });
+    grid.hidden = visible === 0;
+    empty.hidden = visible !== 0;
+    if (status) status.textContent = `${visible} ${visible === 1 ? 'game' : 'games'} found`;
+  }
+
+  input?.addEventListener('input', applyFilter);
+</script>

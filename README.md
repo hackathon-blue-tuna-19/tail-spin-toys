@@ -57,6 +57,10 @@ npm run db:export     # write the seeded catalog to db/catalog.json
 > [!NOTE]
 > Seeding is idempotent — it skips games that already exist (matched by title) rather than reconciling changed rows. CI always starts from a clean database, so it reflects `games.csv` exactly. Locally, if you edit or remove rows in `games.csv`, delete `tailspin.db` and re-run `npm run db:setup` to fully regenerate.
 
+## Game search
+
+The home page has a search box that filters the game list by title (case-insensitive, updates as you type) and shows an empty state when nothing matches. Matching logic lives in `src/lib/search.ts`.
+
 ## Running tests
 
 ```bash
