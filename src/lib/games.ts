@@ -67,3 +67,20 @@ export async function getGameById(db: Database, id: number): Promise<Game | null
     const row = await baseGamesQuery(db).where(eq(games.id, id)).get();
     return row ? mapGame(row) : null;
 }
+
+export interface CatalogSummary {
+    totalGames: number;
+    ratedGames: number;
+    averageRating: number | null;
+}
+
+/** Total game count and average star rating (rounded to 1 decimal) across rated games. */
+export async function getCatalogSummary(db: Database): Promise<CatalogSummary> {
+    const rows = await db.select({ starRating: games.starRating }).from(games);
+    const ratings = rows.map((r) => r.starRating).filter((r): r is number => r !== null);
+    const averageRating =
+        ratings.length === 0
+            ? null
+            : Math.round((ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 10) / 10;
+    return { totalGames: rows.length, ratedGames: ratings.length, averageRating };
+}
