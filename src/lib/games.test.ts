@@ -6,6 +6,7 @@ import {
     getAllGames,
     getAllGameIds,
     getGameById,
+    getCatalogSummary,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -28,6 +29,18 @@ async function seedGames(db: Database, count: number): Promise<void> {
             publisherId: publisher.id,
         });
     }
+}
+
+async function insertUnrated(db: Database): Promise<void> {
+    const [category] = await db.insert(categories).values({ name: 'C', description: 'c' }).returning({ id: categories.id });
+    const [publisher] = await db.insert(publishers).values({ name: 'P', description: 'p' }).returning({ id: publishers.id });
+    await db.insert(games).values({
+        title: 'Unrated',
+        description: 'd',
+        starRating: null,
+        categoryId: category.id,
+        publisherId: publisher.id,
+    });
 }
 
 describe('games data-access helpers', () => {
@@ -62,5 +75,17 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+
+    it('summarizes the catalog', async () => {
+        await seedGames(db, 3);
+        await insertUnrated(db);
+        expect(await getCatalogSummary(db)).toEqual({ totalGames: 4, ratedGames: 3, averageRating: 4.2 });
+    });
+
+    it('handles an empty catalog and no rated games', async () => {
+        expect(await getCatalogSummary(db)).toEqual({ totalGames: 0, ratedGames: 0, averageRating: null });
+        await insertUnrated(db);
+        expect(await getCatalogSummary(db)).toEqual({ totalGames: 1, ratedGames: 0, averageRating: null });
     });
 });
