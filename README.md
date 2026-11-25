@@ -57,6 +57,17 @@ npm run db:export     # write the seeded catalog to db/catalog.json
 > [!NOTE]
 > Seeding is idempotent — it skips games that already exist (matched by title) rather than reconciling changed rows. CI always starts from a clean database, so it reflects `games.csv` exactly. Locally, if you edit or remove rows in `games.csv`, delete `tailspin.db` and re-run `npm run db:setup` to fully regenerate.
 
+## Game Leaderboard canvas
+
+`.github/extensions/game-leaderboard/` is a project-shared, read-only GitHub Copilot app canvas that ranks games by their existing catalog star ratings. Ask Copilot to open the **Game Leaderboard** canvas (optionally with a `genre`), or call its `get_leaderboard` action.
+
+- Games are ranked highest rating first; tied ratings share a rank (1, 1, 3) and are ordered by title.
+- Unrated games are listed last without a rank.
+- A genre filter narrows the ranking to one category.
+- Ratings are catalog star ratings — not gameplay scores or live backing activity.
+
+The canvas reads `tailspin.db` (or `DATABASE_URL`) in read-only mode, so run `npm run db:setup` first. Ranking logic lives in `leaderboard.mjs` and is covered by `npm run test:unit`.
+
 ## Running tests
 
 ```bash

@@ -29,7 +29,7 @@ All commands assume dependencies are installed (`npm ci`).
 npm run test:unit
 ```
 
-- Runs Vitest (`vitest run`) over `db/**/*.test.ts` and `src/**/*.test.ts`.
+- Runs Vitest (`vitest run`) over `db/**/*.test.ts`, `src/**/*.test.ts`, and `.github/extensions/**/*.test.mjs`.
 - Covers the pure seed/transform functions and the Drizzle data-access helpers against an in-memory Node SQLite database.
 
 ### Lint
