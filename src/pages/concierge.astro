@@ -1,0 +1,154 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Card from '../components/Card.astro';
+import PageHero from '../components/PageHero.astro';
+
+// Endpoint of the grounded Backer Concierge assistant (POST { question } -> ConciergeAnswer).
+const endpoint = import.meta.env.PUBLIC_CONCIERGE_ENDPOINT ?? '/api/concierge';
+const examples = ['Which game suits people who like git puns?', "What's the highest rated strategy game?"];
+---
+
+<Layout title="Backer Concierge - Tailspin Toys">
+  <section class="max-w-3xl mx-auto px-4 py-8" data-testid="concierge-section">
+    <PageHero
+      title="Backer Concierge"
+      subtitle="Ask about the Tailspin catalog and get game recommendations. I only know titles, descriptions, categories, publishers and star ratings."
+    />
+
+    <Card class="p-6 shadow-lg">
+      <form id="concierge-form" data-endpoint={endpoint} data-testid="concierge-form" class="space-y-4">
+        <label for="concierge-question" class="block text-slate-100 font-semibold">Your question</label>
+        <textarea
+          id="concierge-question"
+          name="question"
+          rows="3"
+          maxlength="500"
+          required
+          aria-describedby="concierge-help"
+          data-testid="concierge-input"
+          class="w-full rounded-lg bg-slate-900 text-slate-100 border border-slate-600 p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        ></textarea>
+        <p id="concierge-help" class="text-sm text-slate-400">
+          I can't share funding totals, backer counts, pledge tiers, prices or release dates — the catalog doesn't track them.
+        </p>
+        <ul class="flex flex-wrap gap-2" aria-label="Example questions">
+          {examples.map((example, index) => (
+            <li>
+              <button
+                type="button"
+                data-example={example}
+                data-testid={`concierge-example-${index}`}
+                class="text-sm rounded-full bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >{example}</button>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="submit"
+          data-testid="concierge-submit"
+          class="rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        >Ask the Concierge</button>
+      </form>
+
+      <div id="concierge-status" role="status" aria-live="polite" data-testid="concierge-loading" class="mt-6 text-slate-300 hidden">
+        Thinking…
+      </div>
+      <div id="concierge-error" role="alert" data-testid="concierge-error" class="mt-6 text-red-300 hidden"></div>
+
+      <div id="concierge-result" tabindex="-1" data-testid="concierge-result" class="mt-6 space-y-4 text-slate-200 hidden focus:outline-none">
+        <p id="concierge-answer" data-testid="concierge-answer" class="text-lg"></p>
+        <p id="concierge-clarify" data-testid="concierge-clarify" class="rounded-lg bg-blue-900/40 border border-blue-500 p-3 hidden"></p>
+        <ul id="concierge-recommendations" data-testid="concierge-recommendations" class="space-y-3"></ul>
+        <aside id="concierge-context" data-testid="concierge-context" class="rounded-lg bg-slate-900 border border-slate-600 p-3 hidden">
+          <p class="text-sm font-semibold text-slate-300">General context (not a Tailspin catalog fact)</p>
+          <p id="concierge-context-text" class="text-slate-300"></p>
+        </aside>
+      </div>
+    </Card>
+  </section>
+</Layout>
+
+<script>
+  import { normalizeQuestion, parseConciergeAnswer, type ConciergeAnswer } from '../lib/concierge';
+
+  const form = document.querySelector<HTMLFormElement>('#concierge-form');
+  const input = document.querySelector<HTMLTextAreaElement>('#concierge-question');
+  const status = document.querySelector<HTMLElement>('#concierge-status');
+  const errorBox = document.querySelector<HTMLElement>('#concierge-error');
+  const result = document.querySelector<HTMLElement>('#concierge-result');
+  const answerEl = document.querySelector<HTMLElement>('#concierge-answer');
+  const clarifyEl = document.querySelector<HTMLElement>('#concierge-clarify');
+  const list = document.querySelector<HTMLElement>('#concierge-recommendations');
+  const contextBox = document.querySelector<HTMLElement>('#concierge-context');
+  const contextText = document.querySelector<HTMLElement>('#concierge-context-text');
+
+  function render(data: ConciergeAnswer): void {
+    if (!result || !answerEl || !clarifyEl || !list || !contextBox || !contextText) return;
+    answerEl.textContent = data.answer;
+    clarifyEl.textContent = data.clarifyingQuestion ?? '';
+    clarifyEl.classList.toggle('hidden', !data.clarifyingQuestion);
+    list.replaceChildren(
+      ...data.recommendations.map((rec, index) => {
+        const item = document.createElement('li');
+        item.dataset.testid = `concierge-recommendation-${index}`;
+        item.className = 'rounded-lg bg-slate-900 border border-slate-600 p-4';
+        const heading = document.createElement('h2');
+        heading.className = 'text-blue-400 font-bold text-lg';
+        heading.textContent = rec.title;
+        const meta = document.createElement('p');
+        meta.className = 'text-sm text-slate-400';
+        const rating = rec.starRating !== undefined ? ` · ${rec.starRating} / 5 stars` : ' · Not yet rated';
+        meta.textContent = `${rec.category} · ${rec.publisher}${rating}`;
+        const reason = document.createElement('p');
+        reason.textContent = rec.reason;
+        item.append(heading, meta, reason);
+        return item;
+      }),
+    );
+    contextText.textContent = data.generalContext ?? '';
+    contextBox.classList.toggle('hidden', !data.generalContext);
+    result.classList.remove('hidden');
+    result.focus();
+  }
+
+  async function ask(rawQuestion: string): Promise<void> {
+    if (!form || !status || !errorBox || !result) return;
+    errorBox.classList.add('hidden');
+    result.classList.add('hidden');
+    const question = normalizeQuestion(rawQuestion);
+    if (!question) {
+      errorBox.textContent = 'Please enter a question of up to 500 characters.';
+      errorBox.classList.remove('hidden');
+      return;
+    }
+    status.classList.remove('hidden');
+    try {
+      const response = await fetch(form.dataset.endpoint ?? '/api/concierge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const parsed = parseConciergeAnswer(await response.json());
+      if (!parsed) throw new Error('Invalid response');
+      render(parsed);
+    } catch {
+      errorBox.textContent = 'The Concierge is unavailable right now. Please try again later.';
+      errorBox.classList.remove('hidden');
+    } finally {
+      status.classList.add('hidden');
+    }
+  }
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void ask(input?.value ?? '');
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-example]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (input) input.value = button.dataset.example ?? '';
+      input?.focus();
+    });
+  });
+</script>
