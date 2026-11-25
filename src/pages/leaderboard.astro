@@ -1,0 +1,148 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import StarRating from '../components/StarRating.astro';
+import { getDatabase } from '../lib/db';
+import { getAllGames } from '../lib/games';
+import { rankGames } from '../lib/ratings';
+
+export const prerender = true;
+
+const rankedGames = rankGames(await getAllGames(getDatabase()));
+const categories = [...new Map(
+    rankedGames
+        .filter(({ game }) => game.category !== null)
+        .map(({ game }) => [game.category!.id, game.category!.name]),
+).entries()].sort((left, right) => left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0);
+---
+
+<Layout title="Game Leaderboard - Tailspin Toys">
+  <div class="py-8">
+    <PageHero
+      title="Game Leaderboard"
+      subtitle="Compare games by their catalog star ratings."
+    >
+      <p class="mt-4 text-sm text-slate-400">
+        Ratings reflect the catalog only; they are not gameplay scores or live backing activity.
+      </p>
+    </PageHero>
+
+    <section class="rounded-xl border border-slate-700 bg-slate-800/60 p-4 sm:p-6" aria-labelledby="leaderboard-heading">
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 id="leaderboard-heading" class="text-2xl font-semibold text-slate-100">Ranked games</h2>
+          <p class="mt-1 text-sm text-slate-400">Games with equal ratings share a rank.</p>
+        </div>
+        <div>
+          <label for="leaderboard-genre-filter" class="mb-2 block text-sm font-medium text-slate-200">Filter by genre</label>
+          <select
+            id="leaderboard-genre-filter"
+            class="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            data-testid="leaderboard-genre-filter"
+          >
+            <option value="all">All genres</option>
+            {categories.map(([id, name]) => <option value={id}>{name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <p class="mb-4 text-sm text-slate-400" role="status" aria-live="polite" data-testid="leaderboard-results">
+        Showing {rankedGames.length} {rankedGames.length === 1 ? 'game' : 'games'}
+      </p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[36rem] border-collapse text-left">
+          <caption class="sr-only">Games ranked by catalog star rating</caption>
+          <thead>
+            <tr class="border-b border-slate-600 text-sm text-slate-300">
+              <th scope="col" class="px-3 py-3">Rank</th>
+              <th scope="col" class="px-3 py-3">Game</th>
+              <th scope="col" class="px-3 py-3">Genre</th>
+              <th scope="col" class="px-3 py-3">Catalog rating</th>
+            </tr>
+          </thead>
+          <tbody data-testid="leaderboard-rows">
+            {rankedGames.map(({ game, rank }) => (
+              <tr
+                class="border-b border-slate-700 last:border-0"
+                data-testid="leaderboard-row"
+                data-category-id={game.category?.id ?? ''}
+                data-rating={game.starRating ?? ''}
+              >
+                <td class="px-3 py-4 font-semibold text-slate-100" data-testid="leaderboard-rank">
+                  {rank ?? '—'}
+                </td>
+                <th scope="row" class="px-3 py-4 font-medium">
+                  <a
+                    href={`/game/${game.id}`}
+                    class="text-blue-300 underline-offset-4 hover:text-blue-200 hover:underline focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    data-testid="leaderboard-game-link"
+                  >
+                    {game.title}
+                  </a>
+                </th>
+                <td class="px-3 py-4 text-slate-300">{game.category?.name ?? 'Uncategorized'}</td>
+                <td class="px-3 py-4">
+                  {game.starRating === null ? (
+                    <span class="text-slate-400">Not yet rated</span>
+                  ) : (
+                    <StarRating rating={game.starRating} />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p
+        class="mt-6 rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-center text-slate-300"
+        data-testid="leaderboard-empty"
+        hidden={rankedGames.length > 0}
+      >
+        No games match this genre.
+      </p>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  const genreFilter = document.querySelector<HTMLSelectElement>('[data-testid="leaderboard-genre-filter"]');
+  const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>('[data-testid="leaderboard-row"]'));
+  const results = document.querySelector<HTMLElement>('[data-testid="leaderboard-results"]');
+  const emptyState = document.querySelector<HTMLElement>('[data-testid="leaderboard-empty"]');
+
+  if (genreFilter && results && emptyState) {
+    genreFilter.addEventListener('change', () => {
+      let visibleCount = 0;
+      let previousRating: string | null = null;
+      let previousRank = 0;
+
+      rows.forEach((row) => {
+        const matchesGenre = genreFilter.value === 'all' || row.dataset.categoryId === genreFilter.value;
+        row.hidden = !matchesGenre;
+        if (!matchesGenre) return;
+
+        visibleCount++;
+        const rating = row.dataset.rating ?? '';
+        const rankCell = row.querySelector<HTMLElement>('[data-testid="leaderboard-rank"]');
+        if (!rankCell) return;
+
+        if (rating === '') {
+          rankCell.textContent = '—';
+          rankCell.setAttribute('aria-label', 'Unranked');
+        } else {
+          if (rating !== previousRating) {
+            previousRank = visibleCount;
+            previousRating = rating;
+          }
+          rankCell.textContent = String(previousRank);
+          rankCell.setAttribute('aria-label', `Rank ${previousRank}`);
+        }
+      });
+
+      results.textContent = `Showing ${visibleCount} ${visibleCount === 1 ? 'game' : 'games'}`;
+      emptyState.hidden = visibleCount > 0;
+    });
+  }
+</script>
