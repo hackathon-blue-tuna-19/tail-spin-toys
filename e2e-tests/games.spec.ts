@@ -1,6 +1,41 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should sort games by title and star rating', async ({ page }) => {
+    await page.goto('/');
+
+    const sortControl = page.getByLabel('Sort games');
+    const gameCards = page.getByTestId('game-card');
+    await expect(sortControl).toBeVisible();
+    await expect(sortControl).toHaveAttribute('data-testid', 'game-sort');
+
+    const ascendingTitles = await gameCards.evaluateAll((cards) =>
+      cards.map((card) => card.getAttribute('data-game-title') ?? ''),
+    );
+    expect(ascendingTitles).toEqual(
+      [...ascendingTitles].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })),
+    );
+
+    await sortControl.selectOption('title-desc');
+    const descendingTitles = await gameCards.evaluateAll((cards) =>
+      cards.map((card) => card.getAttribute('data-game-title') ?? ''),
+    );
+    expect(descendingTitles).toEqual(
+      [...descendingTitles].sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' })),
+    );
+
+    await sortControl.selectOption('rating-desc');
+    const ratings = await gameCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const rating = card.getAttribute('data-game-rating');
+        return rating ? Number(rating) : null;
+      }),
+    );
+    const ratedGames = ratings.filter((rating): rating is number => rating !== null);
+    expect(ratedGames).toEqual([...ratedGames].sort((a, b) => b - a));
+    expect(ratings.slice(ratedGames.length).every((rating) => rating === null)).toBe(true);
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');

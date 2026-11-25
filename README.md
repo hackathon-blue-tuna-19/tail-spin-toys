@@ -42,6 +42,8 @@ npm run build      # prebuild migrates + seeds, then builds the static site
 npm run preview
 ```
 
+On the home page, use **Sort games** to order the catalog by title (A-Z or Z-A) or by highest star rating. Games without a rating appear last in rating order, alphabetically.
+
 ## Database
 
 The SQLite database is built from `db/games.csv` — there is no live data to migrate.
