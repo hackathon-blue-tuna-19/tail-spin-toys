@@ -57,6 +57,10 @@ npm run db:export     # write the seeded catalog to db/catalog.json
 > [!NOTE]
 > Seeding is idempotent — it skips games that already exist (matched by title) rather than reconciling changed rows. CI always starts from a clean database, so it reflects `games.csv` exactly. Locally, if you edit or remove rows in `games.csv`, delete `tailspin.db` and re-run `npm run db:setup` to fully regenerate.
 
+## Sorting games
+
+The home page has a **Sort by** control: Title (A–Z), Title (Z–A), and Rating (highest first). Sorting runs client-side via the pure `sortGames` helper in `src/lib/sort.ts`. When sorting by rating, games without a star rating are listed last, and ties are broken by title A–Z.
+
 ## Running tests
 
 ```bash
