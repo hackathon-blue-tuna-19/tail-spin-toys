@@ -1,5 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { clampRating, formatStarRating } from './ratings';
+import type { Game } from '../types/game';
+import { clampRating, formatStarRating, rankGames } from './ratings';
+
+function createGame(title: string, starRating: number | null): Game {
+    return {
+        id: title.length,
+        title,
+        description: '',
+        publisher: null,
+        category: null,
+        starRating,
+    };
+}
+
+describe('rankGames', () => {
+    it('sorts by rating, shares tied ranks, and places unrated games last', () => {
+        const rankedGames = rankGames([
+            createGame('Unrated', null),
+            createGame('Lower rating', 3.5),
+            createGame('Zelda', 4.5),
+            createGame('Alpha', 4.5),
+        ]);
+
+        expect(rankedGames.map(({ game, rank }) => [game.title, rank])).toEqual([
+            ['Alpha', 1],
+            ['Zelda', 1],
+            ['Lower rating', 3],
+            ['Unrated', null],
+        ]);
+    });
+});
 
 describe('clampRating', () => {
     it('returns the value unchanged when within range', () => {
