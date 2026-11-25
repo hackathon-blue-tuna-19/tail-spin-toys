@@ -134,3 +134,44 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 });
+
+test.describe('Game filtering', () => {
+  test('filters by category, publisher, and both combined', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.getByTestId('game-card');
+    const total = await cards.count();
+    const status = page.getByTestId('filter-status');
+    await expect(status).toHaveText(`Showing ${total} of ${total} games`);
+
+    await test.step('Filter by a category', async () => {
+      await page.locator('[data-testid^="filter-category-"]').first().check();
+      const visible = await cards.locator('visible=true').count();
+      expect(visible).toBeGreaterThan(0);
+      expect(visible).toBeLessThanOrEqual(total);
+      await expect(status).toHaveText(`Showing ${visible} of ${total} games`);
+    });
+
+    await test.step('Combine with a publisher', async () => {
+      const select = page.getByTestId('filter-publisher');
+      const value = await select.locator('option').nth(1).getAttribute('value');
+      await select.selectOption(value!);
+      const publisherCards = page.locator(`[data-testid="game-card"][data-publisher-id="${value}"]:visible`);
+      expect(await cards.locator('visible=true').count()).toBe(await publisherCards.count());
+    });
+
+    await test.step('Clear restores all games', async () => {
+      await page.getByTestId('filter-clear').click();
+      await expect(cards.locator('visible=true')).toHaveCount(total);
+    });
+  });
+
+  test('filter controls are keyboard accessible', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('filter-status')).toContainText('Showing');
+    const checkbox = page.locator('[data-testid^="filter-category-"]').first();
+    await checkbox.focus();
+    await page.keyboard.press('Space');
+    await expect(checkbox).toBeChecked();
+    await expect(page.getByTestId('filter-status')).toContainText('Showing');
+  });
+});
