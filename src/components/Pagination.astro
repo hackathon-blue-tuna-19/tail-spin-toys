@@ -1,0 +1,47 @@
+---
+interface Props {
+    currentPage: number;
+    totalPages: number;
+}
+
+const { currentPage, totalPages } = Astro.props;
+
+const hrefFor = (page: number): string => (page === 1 ? '/' : `/page/${page}`);
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+const linkClass =
+    'px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none';
+const disabledClass =
+    'px-3 py-2 rounded-lg border border-slate-800 bg-slate-800/50 text-slate-500 cursor-not-allowed';
+---
+
+{totalPages > 1 && (
+    <nav aria-label="Pagination" data-testid="pagination" class="mt-8">
+        <ul class="flex flex-wrap items-center justify-center gap-2">
+            <li>
+                {currentPage > 1 ? (
+                    <a href={hrefFor(currentPage - 1)} rel="prev" class={linkClass} data-testid="pagination-prev">Previous</a>
+                ) : (
+                    <span aria-disabled="true" class={disabledClass} data-testid="pagination-prev">Previous</span>
+                )}
+            </li>
+            {pages.map((page) => (
+                <li>
+                    <a
+                        href={hrefFor(page)}
+                        class={page === currentPage ? 'px-3 py-2 rounded-lg border border-blue-500 bg-blue-600 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none' : linkClass}
+                        aria-current={page === currentPage ? 'page' : undefined}
+                        aria-label={`Page ${page}`}
+                        data-testid={`pagination-page-${page}`}
+                    >{page}</a>
+                </li>
+            ))}
+            <li>
+                {currentPage < totalPages ? (
+                    <a href={hrefFor(currentPage + 1)} rel="next" class={linkClass} data-testid="pagination-next">Next</a>
+                ) : (
+                    <span aria-disabled="true" class={disabledClass} data-testid="pagination-next">Next</span>
+                )}
+            </li>
+        </ul>
+    </nav>
+)}

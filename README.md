@@ -57,6 +57,10 @@ npm run db:export     # write the seeded catalog to db/catalog.json
 > [!NOTE]
 > Seeding is idempotent — it skips games that already exist (matched by title) rather than reconciling changed rows. CI always starts from a clean database, so it reflects `games.csv` exactly. Locally, if you edit or remove rows in `games.csv`, delete `tailspin.db` and re-run `npm run db:setup` to fully regenerate.
 
+## Pagination
+
+The game list is paginated (9 games per page, see `DEFAULT_PAGE_SIZE` in `src/lib/games.ts`). `getGamesPage(db, page, pageSize)` returns one page plus totals. Page 1 is `/`, later pages are statically generated at `/page/N`, and the `Pagination` component renders accessible controls.
+
 ## Running tests
 
 ```bash
